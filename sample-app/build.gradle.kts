@@ -51,8 +51,8 @@ android {
     }
 }
 
-val otelVersion = "1.22.0"
-val otelAlphaVersion = "$otelVersion-alpha"
+val otelVersion = "1.23.1"
+val otelAlphaVersion = "1.22.0-alpha"
 
 dependencies {
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
