@@ -16,6 +16,8 @@
 
 package io.opentelemetry.android.sample;
 
+import static io.opentelemetry.android.sample.OtelSampleApplication.RUM;
+
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -27,8 +29,6 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.navigation.fragment.NavHostFragment;
-
-import com.splunk.rum.SplunkRum;
 
 import io.opentelemetry.android.sample.databinding.FragmentSecondBinding;
 import io.opentelemetry.api.common.Attributes;
@@ -61,7 +61,7 @@ public class SecondFragment extends Fragment {
     @Override
     public View onCreateView(
             LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        sampleAppTracer = SplunkRum.getInstance().getOpenTelemetry().getTracer("sampleAppTracer");
+        sampleAppTracer = RUM.getOpenTelemetry().getTracer("sampleAppTracer");
         binding = FragmentSecondBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -101,8 +101,13 @@ public class SecondFragment extends Fragment {
                 });
         binding.buttonToWebview.setOnClickListener(
                 v -> {
-                    SplunkRum.getInstance()
-                            .addRumEvent("this span will be ignored", Attributes.empty());
+                    // XXX Copied from the addRumEvent() impl...
+                    RUM.getOpenTelemetry()
+                            .getTracer("OpenTelemetryRum")
+                            .spanBuilder("this span will be ignored")
+                            .setAllAttributes(Attributes.empty()).startSpan().end();
+//                    SplunkRum.getInstance()
+//                            .addRumEvent("this span will be ignored", Attributes.empty());
 
                     NavHostFragment.findNavController(SecondFragment.this)
                             .navigate(R.id.action_SecondFragment_to_webViewFragment);
@@ -118,7 +123,13 @@ public class SecondFragment extends Fragment {
                 v -> {
                     String url = "https://pmrum.o11ystore.com/";
                     customChromeTabTimer =
-                            SplunkRum.getInstance().startWorkflow("Visit to Chrome Custom Tab");
+//                            SplunkRum.getInstance().startWorkflow("Visit to Chrome Custom Tab");
+                            RUM.getOpenTelemetry()
+                                    .getTracer("OpenTelemetryRum")
+                                    .spanBuilder("Visit to Chrome Custom Tab")
+//                                    .setAttribute(WORKFLOW_NAME_KEY, workflowName)    // XXX this is defined in splunk code
+                                    // seems to just duplicate the span name, why?
+                                    .startSpan();
                     new CustomTabsIntent.Builder()
                             .setColorScheme(CustomTabsIntent.COLOR_SCHEME_DARK)
                             .setStartAnimations(
@@ -137,7 +148,10 @@ public class SecondFragment extends Fragment {
 
         binding.buttonFreeze.setOnClickListener(
                 v -> {
-                    Span appFreezer = SplunkRum.getInstance().startWorkflow("app freezer");
+//                    Span appFreezer = SplunkRum.getInstance().startWorkflow("app freezer");
+                    Span appFreezer = RUM.getOpenTelemetry()
+                            .getTracer("OpenTelemetryRum")
+                            .spanBuilder("app freezer").startSpan();
                     try {
                         for (int i = 0; i < 20; i++) {
                             Thread.sleep(1_000);
@@ -160,8 +174,11 @@ public class SecondFragment extends Fragment {
                 });
         binding.buttonWork.setOnClickListener(
                 v -> {
-                    Span hardWorker =
-                            SplunkRum.getInstance().startWorkflow("main thread working hard");
+//                    Span hardWorker =
+//                            SplunkRum.getInstance().startWorkflow("main thread working hard");
+                    Span hardWorker = RUM.getOpenTelemetry()
+                            .getTracer("OpenTelemetryRum")
+                            .spanBuilder("main thread working hard").startSpan();
                     Random random = new Random();
                     long startTime = System.currentTimeMillis();
                     while (true) {

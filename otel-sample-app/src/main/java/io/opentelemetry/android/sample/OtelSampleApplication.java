@@ -38,6 +38,8 @@ public class OtelSampleApplication extends Application {
 
         AppStartupTimer startupTimer = new AppStartupTimer();
         RumInitializer initializer = new RumInitializer(this, startupTimer);
+        //XXX NOTE: This static field is referenced by several places that need access to it.
+        //Feels hacky
         RUM = initializer.initialize(CurrentNetworkProvider::createAndStart, Looper.getMainLooper());
 
 //        SplunkRum.builder()
