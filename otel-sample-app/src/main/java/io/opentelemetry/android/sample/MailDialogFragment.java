@@ -16,6 +16,8 @@
 
 package io.opentelemetry.android.sample;
 
+import static io.opentelemetry.android.sample.OtelSampleApplication.RUM;
+
 import android.app.Activity;
 import android.app.Dialog;
 import android.os.Bundle;
@@ -24,7 +26,6 @@ import android.view.View;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
-import com.splunk.rum.SplunkRum;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 
@@ -46,8 +47,13 @@ public class MailDialogFragment extends DialogFragment {
                 .setNegativeButton(
                         R.string.cancel,
                         (dialog, id) ->
-                                SplunkRum.getInstance()
-                                        .addRumEvent("User Rejected Help", HELPER_ATTRIBUTES));
+                                RUM.getOpenTelemetry()
+                                        .getTracer("OpenTelemetryRum")
+                                                .spanBuilder("User Rejected Help")
+                                                .setAllAttributes(HELPER_ATTRIBUTES)
+                                                .startSpan().end());
+//                                SplunkRum.getInstance()
+//                                        .addRumEvent("User Rejected Help", HELPER_ATTRIBUTES));
         return builder.create();
     }
 }

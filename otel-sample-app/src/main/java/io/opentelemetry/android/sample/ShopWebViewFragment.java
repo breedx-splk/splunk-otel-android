@@ -27,7 +27,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.webkit.WebViewClientCompat;
-import com.splunk.rum.SplunkRum;
 
 import io.opentelemetry.android.sample.databinding.FragmentWebViewBinding;
 
@@ -67,7 +66,8 @@ public class ShopWebViewFragment extends Fragment {
                     }
                 });
         binding.webView.getSettings().setJavaScriptEnabled(true);
-        SplunkRum.getInstance().integrateWithBrowserRum(binding.webView);
+        //XXX No browser integration yet, hasn't been migrated
+//        SplunkRum.getInstance().integrateWithBrowserRum(binding.webView);
         binding.webView.loadUrl(storeUrl);
     }
 }

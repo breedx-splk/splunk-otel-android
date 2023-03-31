@@ -16,6 +16,8 @@
 
 package io.opentelemetry.android.sample;
 
+import static io.opentelemetry.android.sample.OtelSampleApplication.RUM;
+
 import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -26,16 +28,14 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewClientCompat;
 
-import com.splunk.rum.SplunkRum;
-
 import io.opentelemetry.android.sample.databinding.FragmentWebViewBinding;
-import io.opentelemetry.api.common.Attributes;
 
 /** A simple {@link Fragment} subclass with a WebView in it. */
 public class WebViewFragment extends Fragment {
@@ -73,7 +73,9 @@ public class WebViewFragment extends Fragment {
 
         binding.webView.getSettings().setJavaScriptEnabled(true);
         binding.webView.addJavascriptInterface(new WebAppInterface(getContext()), "Android");
-        SplunkRum.getInstance().integrateWithBrowserRum(binding.webView);
+        // XXX Browser integration has not been migrated
+//        SplunkRum.getInstance().integrateWithBrowserRum(binding.webView);
+
     }
 
     private static class LocalContentWebViewClient extends WebViewClientCompat {
@@ -100,7 +102,12 @@ public class WebViewFragment extends Fragment {
 
         @JavascriptInterface
         public void showToast(String toast) {
-            SplunkRum.getInstance().addRumEvent("WebViewButtonClicked", Attributes.empty());
+            RUM.getOpenTelemetry()
+                    .getTracer("OpenTelemetryRum")
+                    .spanBuilder("WebViewButtonClicked")
+                    .startSpan().end();
+            // XXX Copied
+//            SplunkRum.getInstance().addRumEvent("WebViewButtonClicked", Attributes.empty());
             Toast.makeText(context, toast, Toast.LENGTH_LONG).show();
         }
 
