@@ -16,7 +16,7 @@
 
 package io.opentelemetry.android.sample;
 
-import static io.opentelemetry.api.common.AttributeKey.longKey;
+import static io.opentelemetry.android.sample.OtelSampleApplication.RUM;
 import static org.apache.http.conn.ssl.SSLSocketFactory.SSL;
 
 import android.os.Bundle;
@@ -29,11 +29,11 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.splunk.rum.SplunkRum;
-
 import io.opentelemetry.android.sample.databinding.FragmentFirstBinding;
+import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -46,6 +46,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
+import io.opentelemetry.instrumentation.okhttp.v3_0.OkHttpTelemetry;
+import io.opentelemetry.rum.internal.OpenTelemetryRum;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -61,13 +65,11 @@ public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
     private Call.Factory okHttpClient;
-    private SplunkRum splunkRum;
 
     @Override
     public View onCreateView(
             LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        splunkRum = SplunkRum.getInstance();
-        okHttpClient = buildOkHttpClient(splunkRum);
+        okHttpClient = buildOkHttpClient(RUM);
         binding = FragmentFirstBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -87,31 +89,43 @@ public class FirstFragment extends Fragment {
 
         binding.httpMe.setOnClickListener(
                 v -> {
-                    Span workflow = splunkRum.startWorkflow("User Login");
+                    // XXX None of this workflow stuff has been migrated. Prolly needs spec.
+//                    Span workflow = splunkRum.startWorkflow("User Login");
+                    Span workflow = startWorkflow("User Login");
                     // not really a login, but it does make an http call
                     makeCall("https://pmrum.o11ystore.com?user=me&pass=secret123secret", workflow);
                     // maybe this call gave us a real customer id, so let's put it into the global
                     // attributes
-                    splunkRum.setGlobalAttribute(longKey("customerId"), 123456L);
+                    // XXX We don't have access to the global attrs
+//                    splunkRum.setGlobalAttribute(longKey("customerId"), 123456L);
                 });
         binding.httpMeBad.setOnClickListener(
                 v -> {
-                    Span workflow = splunkRum.startWorkflow("Workflow With Error");
+                    Span workflow = startWorkflow("Workflow With Error");
                     makeCall("https://asdlfkjasd.asdfkjasdf.ifi", workflow);
                 });
         binding.httpMeNotFound.setOnClickListener(
                 v -> {
-                    Span workflow = splunkRum.startWorkflow("Workflow with 404");
+                    Span workflow = startWorkflow("Workflow with 404");
                     makeCall("https://pmrum.o11ystore.com/foobarbaz", workflow);
                 });
 
         binding.volleyRequest.setOnClickListener(
                 v -> {
-                    VolleyExample volleyExample = new VolleyExample(splunkRum);
-                    volleyExample.doHttpRequest();
+                    // XXX No volley until decoupled from splunkRum
+//                    VolleyExample volleyExample = new VolleyExample(splunkRum);
+//                    volleyExample.doHttpRequest();
                 });
 
-        sessionId.postValue(splunkRum.getRumSessionId());
+        sessionId.postValue(RUM.getRumSessionId());
+    }
+
+    // XXX copied from SplunkRum
+    private Span startWorkflow(String name) {
+        return RUM.getOpenTelemetry()
+                .getTracer("OpenTelemetryRum")
+                .spanBuilder(name)
+                .startSpan();
     }
 
     private void multiThreadCrashing() {
@@ -185,26 +199,47 @@ public class FirstFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        sessionId.postValue(splunkRum.getRumSessionId());
+        sessionId.postValue(RUM.getRumSessionId());
     }
 
-    private Call.Factory buildOkHttpClient(SplunkRum splunkRum) {
+    private Call.Factory buildOkHttpClient(OpenTelemetryRum rum) {
         // grab the default executor service that okhttp uses, and wrap it with one that will
         // propagate the otel context.
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+        // XXX copies/duplicates from RUM code.
+
+        OkHttpTelemetry okTelemetry = OkHttpTelemetry.builder(rum.getOpenTelemetry())
+                .addAttributesExtractor(
+                        // XXX This needs to be migrated
+//                        new RumResponseAttributesExtractor(new ServerTimingHeaderParser()))
+                        new AttributesExtractor<Request, Response>() {
+                            @Override
+                            public void onStart(AttributesBuilder attributes, Context parentContext, Request request) {
+                                //XXX impl needs migration
+                            }
+
+                            @Override
+                            public void onEnd(AttributesBuilder attributes, Context context, Request request, Response response, Throwable error) {
+                                //XXX impl needs migration
+                            }
+                        })
+                .build();
+
         try {
             // NOTE: This is really bad and dangerous. Don't ever do this in the real world.
             // it's only necessary because the demo endpoint uses a self-signed SSL cert.
             SSLContext sslContext = SSLContext.getInstance(SSL);
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
             SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            return splunkRum.createRumOkHttpCallFactory(
-                    builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
-                            .hostnameVerifier(new AllowAllHostnameVerifier())
-                            .build());
+
+            return okTelemetry.newCallFactory(builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
+                    .hostnameVerifier(new AllowAllHostnameVerifier())
+                    .build());
+
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
             e.printStackTrace();
-            return splunkRum.createRumOkHttpCallFactory(builder.build());
+            return okTelemetry.newCallFactory(builder.build());
         }
     }
 

@@ -23,6 +23,7 @@ import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.OS
 import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.OS_TYPE;
 import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.OS_VERSION;
 import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_NAME;
+import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.SERVICE_VERSION;
 import static io.opentelemetry.semconv.resource.attributes.ResourceAttributes.TELEMETRY_SDK_VERSION;
 
 import android.app.Application;
@@ -30,9 +31,6 @@ import android.os.Build;
 import android.os.Looper;
 
 import androidx.annotation.Nullable;
-
-import com.splunk.android.rum.R;
-import com.splunk.rum.StandardAttributes;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -95,7 +93,7 @@ class RumInitializer {
 
         Attributes globalAttributes = Attributes.builder()
                 .put("vendor", "hopefully-upstream")
-                .put(StandardAttributes.APP_VERSION, BuildConfig.VERSION_NAME)
+                .put(SERVICE_VERSION, BuildConfig.VERSION_NAME)
                 .build();
         GlobalAttributesSpanAppender globalAttributesSpanAppender =
                 GlobalAttributesSpanAppender.create(globalAttributes);

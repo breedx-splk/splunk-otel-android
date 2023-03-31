@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 public class VolleyExample {
 
     private static final String URL = "https://pmrum.o11ystore.com?user=me&pass=secret123secret";
+    // XXX Volley still very much coupled to RUM
     private final SplunkRum splunkRum;
 
     public VolleyExample(SplunkRum splunkRum) {
