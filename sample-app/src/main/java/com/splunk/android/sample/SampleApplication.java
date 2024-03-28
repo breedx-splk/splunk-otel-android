@@ -19,12 +19,23 @@ package com.splunk.android.sample;
 import static io.opentelemetry.api.common.AttributeKey.stringKey;
 
 import android.app.Application;
+
+import androidx.annotation.NonNull;
+
 import com.splunk.rum.SplunkRum;
 import com.splunk.rum.StandardAttributes;
+import com.splunk.rum.incubating.HttpSenderCustomizer;
+
 import io.opentelemetry.api.common.Attributes;
+
+import java.io.IOException;
 import java.time.Duration;
 import java.util.regex.Pattern;
+
+import okhttp3.Interceptor;
 import okhttp3.Request;
+import okhttp3.Response;
+import zipkin2.reporter.okhttp3.OkHttpSender;
 
 public class SampleApplication extends Application {
 
@@ -42,7 +53,18 @@ public class SampleApplication extends Application {
                 .setApplicationName("Android Demo App")
                 .setRumAccessToken(getResources().getString(R.string.rum_access_token))
                 .enableDebug()
-                .enableDiskBuffering()
+//                .enableDiskBuffering()
+                .enableExperimentalOtlpExporter()
+                .setHttpSenderCustomizer(builder -> builder.clientBuilder()
+                        .addInterceptor(new Interceptor() {
+                    @NonNull
+                    @Override
+                    public Response intercept(@NonNull Chain chain) throws IOException {
+                        Request req = chain.request();
+                        Response response = chain.proceed(req);
+                        return response;
+                    }
+                }))
                 .disableSubprocessInstrumentation(BuildConfig.APPLICATION_ID)
                 .enableBackgroundInstrumentationDeferredUntilForeground()
                 .setSlowRenderingDetectionPollInterval(Duration.ofMillis(1000))
