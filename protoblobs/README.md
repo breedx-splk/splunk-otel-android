@@ -4,6 +4,11 @@
 This directory contains a set of example OTLP payloads, which are OTLP traces
 coming from the splunk-otel-android sdk.
 
+```bash
+git clone git@github.com:breedx-splk/splunk-otel-android.git
+cd splunk-otel-android/protoblobs
+```
+
 These raw/binary data blobs can be sent with curl to an endpoint:
 
 ```bash
